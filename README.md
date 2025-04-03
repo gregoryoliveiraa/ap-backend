@@ -1,89 +1,60 @@
 # AP-Backend
 
-Backend API para o sistema de assistência jurídica com IA.
+## Overview
+Backend API service for the Advocacia Proativa platform. This service provides endpoints for managing legal documents, templates, and user authentication.
 
-## Descrição
+## Features
+- User authentication using JWT tokens
+- Document management (creation, retrieval, updating)
+- Template management with variable extraction
+- Test mode for development
 
-O AP-Backend é uma API REST desenvolvida em Python com FastAPI que fornece serviços para o aplicativo de assistência jurídica. Esta API gerencia documentos jurídicos, templates, autenticação de usuários e integração com modelos de IA para geração de conteúdo jurídico.
+## Installation
 
-## Principais Funcionalidades
-
-- Autenticação e gerenciamento de usuários
-- CRUD de documentos jurídicos
-- Gerenciamento de templates de documentos
-- Integração com modelos de IA para assistência na geração de textos jurídicos
-- Pesquisa avançada de documentos e jurisprudência
-
-## Tecnologias Utilizadas
-
+### Prerequisites
 - Python 3.9+
-- FastAPI
-- SQLAlchemy
-- SQLite (desenvolvimento)
-- PyJWT para autenticação
-- OpenAI API para integração com modelos de IA
+- SQLite3
 
-## Instalação e Execução
-
-### Pré-requisitos
-
-- Python 3.9 ou superior
-- pip (gerenciador de pacotes do Python)
-
-### Instalação
-
-1. Clone este repositório:
+### Setup
 ```bash
-git clone https://github.com/gregoryoliveiraa/ap-backend.git
+# Clone the repository
+git clone https://github.com/yourusername/ap-backend.git
 cd ap-backend
-```
 
-2. Instale as dependências:
-```bash
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-3. Configure as variáveis de ambiente:
-```bash
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
-```
+# Run migrations (if applicable)
+# python manage.py migrate
 
-### Execução
-
-Para iniciar o servidor de desenvolvimento:
-
-```bash
+# Start the server
 python -m uvicorn app.main:app --reload --port 8080
 ```
 
-O servidor estará disponível em `http://localhost:8080`.
+## API Endpoints
 
-## Estrutura do Projeto
+### Authentication
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh access token
 
-```
-ap-backend/
-├── app/
-│   ├── api/
-│   │   ├── dependencies/
-│   │   └── v1/
-│   │       └── endpoints/
-│   ├── core/
-│   ├── db/
-│   ├── models/
-│   └── main.py
-├── scripts/
-├── requirements.txt
-└── README.md
-```
+### Documents
+- `GET /api/v1/documents` - Get all user documents
+- `GET /api/v1/documents/{document_id}` - Get document by ID
+- `POST /api/v1/documents` - Create new document
+- `PUT /api/v1/documents/{document_id}` - Update document
 
-## Documentação da API
+### Templates
+- `GET /api/v1/documents/templates` - Get all templates
+- `GET /api/v1/documents/templates/{template_id}` - Get template details
 
-A documentação interativa da API está disponível em:
+## Development
 
-- Swagger UI: `http://localhost:8080/docs`
-- ReDoc: `http://localhost:8080/redoc`
+### Test Mode
+The API includes a test mode for development purposes. To enable test mode, set the `TEST_MODE` flag to `True` in `app/core/config.py`.
 
-## Licença
-
-Este projeto está licenciado sob a licença MIT. 
+## License
+[MIT License](LICENSE)
