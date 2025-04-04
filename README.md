@@ -101,9 +101,28 @@ Para listar os usuários cadastrados:
 python list_users.py
 ```
 
-## Deploy em Produção
+## Deploy e Operações
 
-Para fazer o deploy em ambiente de produção:
+### Guia Detalhado
+
+Para detalhes completos sobre deploy, operações e manutenção em ambiente de produção, consulte o arquivo [DEPLOY.md](DEPLOY.md).
+
+Este guia contém instruções detalhadas sobre:
+- Configuração do servidor
+- Instalação e configuração da aplicação
+- Gerenciamento do serviço systemd
+- Configuração do Nginx como proxy reverso
+- Monitoramento e logs
+- Backups e manutenção
+- Solução de problemas comuns
+
+### Comandos Rápidos
+
+Para uma referência rápida com os comandos mais comuns para gerenciar o serviço em produção, consulte [OPERATIONS_CHEATSHEET.md](OPERATIONS_CHEATSHEET.md).
+
+### Deploy Rápido
+
+Para um deploy rápido, você pode usar:
 
 ```bash
 # Clone o repositório
