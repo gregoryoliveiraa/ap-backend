@@ -7,8 +7,10 @@ import json
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "API Portal"
+    PROJECT_NAME: str = "API Advogada Parceira"
+    API_TITLE: str = "API Advogada Parceira"
     API_V1_STR: str = "/api/v1"
+    VERSION: str = "2.1.8"
     SECRET_KEY: str = "your-secret-key-123"  # Change in production
     ALGORITHM: str = "HS256"  # Algorithm for JWT token generation
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days

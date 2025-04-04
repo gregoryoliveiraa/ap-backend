@@ -1,60 +1,163 @@
 # AP-Backend
 
-## Overview
-Backend API service for the Advocacia Proativa platform. This service provides endpoints for managing legal documents, templates, and user authentication.
+**Versão atual:** 2.1.8
+
+Backend API service for the Advogada Parceira platform. This service provides endpoints for managing legal documents, templates, and user authentication.
 
 ## Features
-- User authentication using JWT tokens
-- Document management (creation, retrieval, updating)
-- Template management with variable extraction
-- Test mode for development
 
-## Installation
+* User authentication using JWT tokens
+* Document management (creation, retrieval, updating)
+* Template management with variable extraction
+* AI-powered assistants for legal document generation
+* User management and permissions
 
-### Prerequisites
-- Python 3.9+
-- SQLite3
+## Requisitos
 
-### Setup
+* Python 3.9+
+* SQLite (desenvolvimento local) ou PostgreSQL (produção)
+* Ambiente virtual Python (venv)
+
+## Instalação Rápida
+
+Para configurar o ambiente de desenvolvimento rapidamente, use o script de setup:
+
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/ap-backend.git
+# Clone o repositório
+git clone https://github.com/gregoryoliveiraa/ap-backend.git
 cd ap-backend
 
-# Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run migrations (if applicable)
-# python manage.py migrate
-
-# Start the server
-python -m uvicorn app.main:app --reload --port 8080
+# Execute o script de setup (cria ambiente virtual e instala dependências)
+chmod +x setup.sh
+./setup.sh
 ```
 
-## API Endpoints
+O script `setup.sh` automatiza:
+- Criação do ambiente virtual
+- Instalação de dependências
+- Criação do arquivo .env a partir do template
+- Inicialização do banco de dados
+- Execução de migrações
 
-### Authentication
-- `POST /api/v1/auth/login` - User login
-- `POST /api/v1/auth/refresh` - Refresh access token
+## Configuração Manual
 
-### Documents
-- `GET /api/v1/documents` - Get all user documents
-- `GET /api/v1/documents/{document_id}` - Get document by ID
-- `POST /api/v1/documents` - Create new document
-- `PUT /api/v1/documents/{document_id}` - Update document
+Se preferir fazer a configuração manualmente:
 
-### Templates
-- `GET /api/v1/documents/templates` - Get all templates
-- `GET /api/v1/documents/templates/{template_id}` - Get template details
+```bash
+# Clone o repositório
+git clone https://github.com/gregoryoliveiraa/ap-backend.git
+cd ap-backend
 
-## Development
+# Criar ambiente virtual
+python3 -m venv venv
 
-### Test Mode
-The API includes a test mode for development purposes. To enable test mode, set the `TEST_MODE` flag to `True` in `app/core/config.py`.
+# Ativar ambiente virtual
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate  # Windows
 
-## License
-[MIT License](LICENSE)
+# Instalar dependências
+pip install -r requirements.txt
+
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Edite o arquivo .env com suas configurações
+
+# Inicializar banco de dados
+python init_db.py
+
+# Executar migrações
+alembic upgrade heads
+```
+
+## Iniciar o Servidor
+
+Para iniciar o servidor localmente:
+
+```bash
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate  # Windows
+
+# Iniciar servidor com recarregamento automático
+uvicorn app.main:app --reload
+```
+
+O servidor estará disponível em `http://localhost:8000`. A documentação da API está em `http://localhost:8000/docs`.
+
+## Criar Usuário Administrador
+
+Para criar um usuário administrador:
+
+```bash
+python create_admin.py --email admin@example.com --password senha123 --nome "Administrador"
+```
+
+## Verificar Usuários
+
+Para listar os usuários cadastrados:
+
+```bash
+python list_users.py
+```
+
+## Deploy em Produção
+
+Para fazer o deploy em ambiente de produção:
+
+```bash
+# Clone o repositório
+git clone https://github.com/gregoryoliveiraa/ap-backend.git
+cd ap-backend
+
+# Configurar variáveis de ambiente para produção
+cp .env.example .env
+# Edite o arquivo .env com as configurações de produção
+# Importante: ajuste DATABASE_URL para o banco PostgreSQL
+
+# Execute o script de deploy
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Para verificação de saúde, o script de deploy configura automaticamente um serviço de monitoramento que verifica a API a cada 5 minutos.
+
+## Estrutura do Projeto
+
+```
+ap-backend/
+├── alembic/                # Migrações de banco de dados
+├── app/
+│   ├── api/                # Rotas e endpoints da API
+│   ├── core/               # Configurações e funcionalidades centrais
+│   ├── db/                 # Configuração do banco de dados
+│   ├── models/             # Modelos SQLAlchemy
+│   ├── schemas/            # Esquemas Pydantic
+│   ├── services/           # Serviços e lógica de negócios
+│   └── utils/              # Utilitários gerais
+├── scripts/                # Scripts de utilidade
+├── .env.example            # Template de variáveis de ambiente
+├── create_admin.py         # Script para criar usuário administrador
+├── deploy.sh               # Script de deploy
+├── init_db.py              # Inicialização do banco de dados
+├── list_users.py           # Listar usuários cadastrados
+├── requirements.txt        # Dependências do projeto
+└── setup.sh                # Script de configuração do ambiente
+```
+
+## Solução de Problemas
+
+Se encontrar problemas com migrações do banco de dados:
+
+1. Verifique se a estrutura do banco está correta: `alembic current`
+2. Se necessário, reinicie as migrações: `alembic revision --autogenerate -m "reset migrations"`
+3. Aplique migrações: `alembic upgrade heads`
+
+Para problemas com o pandas (se estiver usando SQLite):
+```bash
+pip install --no-cache-dir pandas
+```
+
+## Licença
+
+MIT License

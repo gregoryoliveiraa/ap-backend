@@ -6,8 +6,8 @@ from sqlalchemy import pool
 from alembic import context
 
 # Import our models so Alembic can autogenerate migrations
-from app.db.session import Base
-from app.models import user, document, chat_session, jurisprudence, usage_tracking
+from app.db.base_class import Base
+from app.models import user, document, chat_session, jurisprudence, usage
 from app.core.config import settings
 
 # this is the Alembic Config object, which provides

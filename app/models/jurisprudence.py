@@ -1,9 +1,11 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from typing import Optional, List
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
+from datetime import datetime
 
-from app.db.session import Base
+from app.db.base_class import Base
 
 
 class JurisprudenceSearch(Base):

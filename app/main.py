@@ -9,11 +9,15 @@ from app.core.security import create_access_token, verify_password
 from datetime import timedelta
 from app.db.base import init_db
 
+# API version
+API_VERSION = "2.1.8"
+
 app = FastAPI(
-    title=settings.PROJECT_NAME,
+    title=settings.API_TITLE,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
+    version=API_VERSION,
 )
 
 # Set up CORS middleware
@@ -39,7 +43,7 @@ async def root():
     """
     Health check endpoint
     """
-    return {"message": "Advogada Parceira API is running", "status": "ok"}
+    return {"message": "Advogada Parceira API is running", "status": "ok", "version": API_VERSION}
 
 
 @app.get("/test_login")
