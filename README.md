@@ -1,182 +1,177 @@
-# AP-Backend
+# Advogada Parceira
 
-**Versão atual:** 2.1.8
+Este repositório contém o código fonte do sistema Advogada Parceira.
 
-Backend API service for the Advogada Parceira platform. This service provides endpoints for managing legal documents, templates, and user authentication.
+## Estrutura do Projeto
 
-## Features
+O projeto é composto por dois repositórios principais:
 
-* User authentication using JWT tokens
-* Document management (creation, retrieval, updating)
-* Template management with variable extraction
-* AI-powered assistants for legal document generation
-* User management and permissions
+- `ap-frontend`: Frontend da aplicação em React
+- `ap-backend`: Backend da aplicação em FastAPI (Python)
 
-## Requisitos
+## Estratégia de Branches
 
-* Python 3.9+
-* SQLite (desenvolvimento local) ou PostgreSQL (produção)
-* Ambiente virtual Python (venv)
+O projeto adota o modelo Git Flow para gerenciamento de branches. Confira o arquivo [branch_strategy.md](branch_strategy.md) para mais detalhes.
 
-## Instalação Rápida
+### Branches Principais
+- **main**: Branch de produção. Contém código estável e testado pronto para deploy.
+- **develop**: Branch de desenvolvimento onde novas funcionalidades são integradas.
 
-Para configurar o ambiente de desenvolvimento rapidamente, use o script de setup:
+### Branches Temporárias
+- **feature/nome-da-feature**: Para desenvolvimento de novas funcionalidades.
+- **bugfix/nome-do-bug**: Para correção de bugs.
+- **hotfix/nome-do-hotfix**: Para correções urgentes em produção.
+- **release/versão**: Para preparação de novas versões.
 
+## Scripts de Gerenciamento
+
+O projeto possui um conjunto de scripts para facilitar o gerenciamento do código e das versões:
+
+### Gerenciamento de Branches e Versões
+- `create_feature_branch.sh`: Cria uma nova branch de feature a partir da develop
+- `create_release.sh`: Prepara uma nova versão para lançamento
+- `finalize_release.sh`: Finaliza o processo de release, mesclando na main e develop
+- `create_hotfix.sh`: Cria uma branch de hotfix para correções urgentes em produção
+- `finalize_hotfix.sh`: Finaliza um hotfix, aplicando as correções em main e develop
+- `implement_branch_strategy.sh`: Script usado para implementar inicialmente a estratégia de branches
+
+### Exemplos de Uso
+
+#### Criar uma Feature
 ```bash
-# Clone o repositório
-git clone https://github.com/gregoryoliveiraa/ap-backend.git
-cd ap-backend
-
-# Execute o script de setup (cria ambiente virtual e instala dependências)
-chmod +x setup.sh
-./setup.sh
+./create_feature_branch.sh frontend nova-funcionalidade
 ```
 
-O script `setup.sh` automatiza:
-- Criação do ambiente virtual
-- Instalação de dependências
-- Criação do arquivo .env a partir do template
-- Inicialização do banco de dados
-- Execução de migrações
-
-## Configuração Manual
-
-Se preferir fazer a configuração manualmente:
-
+#### Criar uma Release
 ```bash
-# Clone o repositório
-git clone https://github.com/gregoryoliveiraa/ap-backend.git
-cd ap-backend
-
-# Criar ambiente virtual
-python3 -m venv venv
-
-# Ativar ambiente virtual
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
-
-# Instalar dependências
-pip install -r requirements.txt
-
-# Configurar variáveis de ambiente
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
-
-# Inicializar banco de dados
-python init_db.py
-
-# Executar migrações
-alembic upgrade heads
+./create_release.sh both 1.1.0
 ```
 
-## Iniciar o Servidor
-
-Para iniciar o servidor localmente:
-
+#### Finalizar uma Release
 ```bash
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
-
-# Iniciar servidor com recarregamento automático
-uvicorn app.main:app --reload
+./finalize_release.sh both 1.1.0
 ```
 
-O servidor estará disponível em `http://localhost:8000`. A documentação da API está em `http://localhost:8000/docs`.
-
-## Criar Usuário Administrador
-
-Para criar um usuário administrador:
-
+#### Criar um Hotfix
 ```bash
-python create_admin.py --email admin@example.com --password senha123 --nome "Administrador"
+./create_hotfix.sh backend correcao-urgente 1.0.1
 ```
 
-## Verificar Usuários
-
-Para listar os usuários cadastrados:
-
+#### Finalizar um Hotfix
 ```bash
-python list_users.py
+./finalize_hotfix.sh backend correcao-urgente 1.0.1
 ```
 
-## Deploy e Operações
+## Convenções de Versionamento
 
-### Guia Detalhado
+O projeto segue o padrão Semantic Versioning (SemVer):
 
-Para detalhes completos sobre deploy, operações e manutenção em ambiente de produção, consulte o arquivo [DEPLOY.md](DEPLOY.md).
+- **X.Y.Z** onde:
+  - **X**: Versão principal (major) - Mudanças incompatíveis com versões anteriores
+  - **Y**: Versão secundária (minor) - Adições de funcionalidades compatíveis
+  - **Z**: Versão de patch - Correções de bugs compatíveis
 
-Este guia contém instruções detalhadas sobre:
-- Configuração do servidor
-- Instalação e configuração da aplicação
-- Gerenciamento do serviço systemd
-- Configuração do Nginx como proxy reverso
-- Monitoramento e logs
-- Backups e manutenção
-- Solução de problemas comuns
+## Deployment
 
-### Comandos Rápidos
+O sistema está atualmente configurado para ser implantado em:
+- Frontend: http://advogadaparceira.com.br
+- API: http://api.advogadaparceira.com.br
 
-Para uma referência rápida com os comandos mais comuns para gerenciar o serviço em produção, consulte [OPERATIONS_CHEATSHEET.md](OPERATIONS_CHEATSHEET.md).
+## Informações Adicionais
 
-### Deploy Rápido
+- Para detalhes sobre a estratégia de branches, consulte [branch_strategy.md](branch_strategy.md)
+- Documentação adicional pode ser encontrada na pasta `deployment_docs/`
 
-Para um deploy rápido, você pode usar:
+## Visão Geral
 
-```bash
-# Clone o repositório
-git clone https://github.com/gregoryoliveiraa/ap-backend.git
-cd ap-backend
+A Advogada Parceira é uma plataforma que permite a profissionais do direito gerenciar, criar e gerar documentos jurídicos com assistência de IA. O sistema é composto por:
 
-# Configurar variáveis de ambiente para produção
-cp .env.example .env
-# Edite o arquivo .env com as configurações de produção
-# Importante: ajuste DATABASE_URL para o banco PostgreSQL
+- **Frontend**: Aplicação React (http://app.advogadaparceira.com.br)
+- **Backend**: API FastAPI Python (http://api.advogadaparceira.com.br)
 
-# Execute o script de deploy
-chmod +x deploy.sh
-./deploy.sh
-```
+## Tecnologias Utilizadas
 
-Para verificação de saúde, o script de deploy configura automaticamente um serviço de monitoramento que verifica a API a cada 5 minutos.
+### Frontend
+- React
+- TypeScript
+- Material UI
+- Axios para requisições HTTP
+- React Router para navegação
+
+### Backend
+- FastAPI (Python)
+- SQLite/PostgreSQL
+- JWT para autenticação
+- Integração com APIs de IA (OpenAI, Anthropic, DeepSeek)
 
 ## Estrutura do Projeto
 
 ```
-ap-backend/
-├── alembic/                # Migrações de banco de dados
-├── app/
-│   ├── api/                # Rotas e endpoints da API
-│   ├── core/               # Configurações e funcionalidades centrais
-│   ├── db/                 # Configuração do banco de dados
-│   ├── models/             # Modelos SQLAlchemy
-│   ├── schemas/            # Esquemas Pydantic
-│   ├── services/           # Serviços e lógica de negócios
-│   └── utils/              # Utilitários gerais
-├── scripts/                # Scripts de utilidade
-├── .env.example            # Template de variáveis de ambiente
-├── create_admin.py         # Script para criar usuário administrador
-├── deploy.sh               # Script de deploy
-├── init_db.py              # Inicialização do banco de dados
-├── list_users.py           # Listar usuários cadastrados
-├── requirements.txt        # Dependências do projeto
-└── setup.sh                # Script de configuração do ambiente
+advogada-parceira/
+├── ap-frontend/         # Aplicação React
+├── ap-backend/          # API FastAPI
+└── deployment_docs/     # Documentação de implantação
 ```
 
-## Solução de Problemas
+## Implantação
 
-Se encontrar problemas com migrações do banco de dados:
+### Requisitos do Servidor
+- Ubuntu Server 22.04 LTS ou superior
+- Nginx
+- Node.js (para o frontend)
+- Python 3.10+ (para o backend)
+- Git
 
-1. Verifique se a estrutura do banco está correta: `alembic current`
-2. Se necessário, reinicie as migrações: `alembic revision --autogenerate -m "reset migrations"`
-3. Aplique migrações: `alembic upgrade heads`
+### Scripts de Implantação
 
-Para problemas com o pandas (se estiver usando SQLite):
+Para implantar o frontend:
 ```bash
-pip install --no-cache-dir pandas
+./deploy_frontend.sh
+```
+
+Para implantar o backend:
+```bash
+./backend_deploy.sh
+```
+
+## Desenvolvimento Local
+
+### Frontend
+```bash
+cd ap-frontend
+npm install
+npm start
+```
+
+### Backend
+```bash
+cd ap-backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+## Configuração de Ambiente
+
+### Frontend (.env)
+```
+REACT_APP_API_URL=http://api.advogadaparceira.com.br
+REACT_APP_ENV=development
+```
+
+### Backend (.env)
+```
+DATABASE_URL=sqlite:///./app.db
+SECRET_KEY=your_secret_key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
 ## Licença
 
-MIT License
+Este projeto é proprietário e não está licenciado para uso público sem permissão explícita.
+
+## Contato
+
+Para questões ou suporte, entre em contato com a equipe de desenvolvimento em gregory.oliveira.it@gmail.com. 
