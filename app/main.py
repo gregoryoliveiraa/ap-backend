@@ -23,10 +23,10 @@ app = FastAPI(
 # Set up CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Permitir apenas o frontend
+    allow_origins=["http://localhost:3000", "http://app.advogadaparceira.com.br"],  # Allow both local and production frontend
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos os métodos (GET, POST, etc)
-    allow_headers=["*"],  # Permitir todos os headers
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc)
+    allow_headers=["*"],  # Allow all headers
     expose_headers=["*"],
     max_age=3600,
 )
@@ -72,6 +72,68 @@ async def test_login(db: Session = Depends(get_db)):
         access_token = create_access_token(
             user.id, expires_delta=access_token_expires
         )
+        
+        return {
+            "status": "success",
+            "message": "Login successful",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user.id,
+            "email": user.email,
+            "nome_completo": user.nome_completo
+        }
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return {"status": "error", "message": str(e), "details": error_details}
+
+
+@app.get("/test_login_sidarta")
+async def test_login_sidarta(db: Session = Depends(get_db)):
+    """
+    Test login endpoint for Sidarta user - for debugging
+    """
+    try:
+        # Dados de teste
+        email = "sidarta.martins@gmail.com"
+        password = "123456"
+        
+        # Find user in DB
+        user = db.query(User).filter(User.email == email).first()
+        
+        if not user:
+            return {"status": "error", "message": "User not found"}
+        
+        # Print hash details for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"User ID: {user.id}")
+        logger.info(f"User email: {user.email}")
+        logger.info(f"Hashed password: {user.hashed_password}")
+        logger.info(f"Hash length: {len(user.hashed_password)}")
+        
+        # Verify password
+        try:
+            is_password_valid = verify_password(password, user.hashed_password)
+            logger.info(f"Password verification result: {is_password_valid}")
+        except Exception as verify_error:
+            logger.error(f"Password verification error: {str(verify_error)}")
+            return {"status": "error", "message": f"Password verification error: {str(verify_error)}"}
+        
+        if not is_password_valid:
+            return {"status": "error", "message": "Invalid password"}
+        
+        # Generate token
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+        try:
+            access_token = create_access_token(
+                user.id, expires_delta=access_token_expires
+            )
+            logger.info("Access token created successfully")
+        except Exception as token_error:
+            logger.error(f"Token creation error: {str(token_error)}")
+            return {"status": "error", "message": f"Token creation error: {str(token_error)}"}
         
         return {
             "status": "success",
