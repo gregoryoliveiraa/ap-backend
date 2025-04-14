@@ -32,6 +32,12 @@ class UserUpdate(UserBase):
     password: Optional[str] = None
 
 
+# Schema for password update requests
+class PasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str
+
+
 # Properties to return via API
 class User(UserBase):
     id: str
