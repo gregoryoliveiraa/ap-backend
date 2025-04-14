@@ -129,3 +129,82 @@ async def get_usage_stats(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error loading usage data: {str(e)}"
         )
+
+@router.post("/credits", response_model=PaymentResponse)
+async def add_credits(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    payment_data: AddCreditsRequest,
+):
+    """
+    Add credits to the user account with payment
+    """
+    try:
+        # Valor mínimo de compra
+        if payment_data.amount < 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="O valor mínimo de compra é R$ 10,00",
+            )
+        
+        # Definir quantos créditos/tokens o usuário vai receber
+        # Regra: R$ 1,00 = 1 crédito = 20 tokens
+        num_credits = int(payment_data.amount)
+        tokens_added = num_credits * TOKENS_POR_CREDITO
+        
+        # Processamento do pagamento (simulação)
+        # Em um ambiente real, aqui seria integrado com gateway de pagamento
+        payment_status = "completed"
+        card_last_digits = None
+        
+        if payment_data.payment_method == "credit":
+            # Simulação de processamento de cartão de crédito
+            if payment_data.card_data:
+                # Em produção, aqui seria feita a validação e processamento real do cartão
+                card_number = payment_data.card_data.get("number", "")
+                if card_number:
+                    card_last_digits = card_number[-4:] if len(card_number) >= 4 else None
+        
+        # Criar registro de pagamento
+        payment = Payment(
+            user_id=current_user.id,
+            amount=payment_data.amount,
+            payment_method=payment_data.payment_method,
+            status=payment_status,
+            card_last_digits=card_last_digits,
+        )
+        db.add(payment)
+        
+        # Atualizar os créditos do usuário
+        current_user.creditos_disponiveis += num_credits
+        
+        # Atualizar o registro de uso
+        usage = db.query(Usage).filter(Usage.user_id == current_user.id).first()
+        if not usage:
+            usage = Usage(
+                user_id=current_user.id,
+                total_tokens=0,
+                available_tokens=tokens_added,
+                total_documents=0,
+            )
+            db.add(usage)
+        else:
+            usage.available_tokens += tokens_added
+        
+        db.commit()
+        db.refresh(payment)
+        
+        return {
+            "id": payment.id,
+            "amount": payment.amount,
+            "tokens_added": tokens_added,
+            "status": payment.status,
+            "created_at": payment.created_at.isoformat(),
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao processar pagamento: {str(e)}",
+        )

@@ -2,6 +2,7 @@
 
 from sqlalchemy.orm import Session
 from app.db.session import engine
+from app.db.base import Base  # Isso irá importar todos os modelos na ordem correta
 from app.models.user import User
 from tabulate import tabulate
 
@@ -17,6 +18,9 @@ def list_users():
         
         table_data = []
         for user in users:
+            # Formatar a data de criação, lidando com None
+            data_criacao = user.data_criacao.strftime("%Y-%m-%d %H:%M:%S") if user.data_criacao else "N/A"
+            
             # Mascarar a senha por segurança
             table_data.append([
                 user.id,
@@ -25,7 +29,7 @@ def list_users():
                 user.plano,
                 "Sim" if user.verificado else "Não",
                 user.creditos_disponiveis,
-                user.data_criacao.strftime("%Y-%m-%d %H:%M:%S")
+                data_criacao
             ])
         
         headers = ["ID", "Email", "Nome", "Plano", "Verificado", "Créditos", "Data Criação"]
