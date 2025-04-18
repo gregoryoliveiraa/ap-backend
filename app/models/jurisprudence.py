@@ -1,8 +1,7 @@
 from typing import Optional, List
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime
 
 from app.db.base_class import Base
@@ -12,9 +11,9 @@ class JurisprudenceSearch(Base):
     __tablename__ = "jurisprudencia_buscas"
 
     id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    usuario_id = Column(Integer, ForeignKey("users.id"))
     termos_busca = Column(Text, nullable=False)
-    filtros = Column(JSONB)
+    filtros = Column(JSON)
     timestamp = Column(DateTime, default=func.now())
     resultados_encontrados = Column(Integer, default=0)
     

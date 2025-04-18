@@ -12,6 +12,7 @@ class Payment(Base):
     payment_method = Column(String, nullable=False)  # 'credit' or 'pix'
     status = Column(String, nullable=False)  # 'completed', 'pending', 'failed'
     card_last_digits = Column(String, nullable=True)
+    description = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
