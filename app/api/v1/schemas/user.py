@@ -46,6 +46,7 @@ class User(UserBase):
     created_at: datetime
     updated_at: datetime
     is_active: bool = True
+    role: str = "user"
 
     class Config:
         from_attributes = True
@@ -64,3 +65,18 @@ class CurrentUser(User):
 # Properties properties stored in DB
 class UserInDB(UserInDBBase):
     hashed_password: str
+
+
+# Admin-only user update schema
+class AdminUserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    nome_completo: Optional[str] = None
+    plano: Optional[str] = None
+    verificado: Optional[bool] = None
+    role: Optional[str] = None
+    
+# Credit update schema for admin
+class CreditUpdate(BaseModel):
+    userId: str
+    amount: int
+    reason: str

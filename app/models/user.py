@@ -20,6 +20,7 @@ class User(Base):
     creditos_disponiveis = Column(Integer, default=0)
     plano = Column(String(50), default="gratuito")
     is_active = Column(Boolean(), default=True)
+    role = Column(String(20), default="user", nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
     

@@ -110,3 +110,35 @@ def get_current_active_user(
             detail="Inactive user",
         )
     return current_user
+
+
+def get_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency to get current admin user
+    """
+    try:
+        # Check if the user has admin role or admin plan
+        is_admin = False
+        
+        # Check if role attribute exists
+        if hasattr(current_user, "role"):
+            is_admin = current_user.role == "admin"
+        
+        # If not admin by role, check if admin by plan
+        if not is_admin:
+            is_admin = current_user.plano == "admin"
+            
+        if not is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized. Admin access required.",
+            )
+        return current_user
+    except Exception as e:
+        print(f"Error in admin access check: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access check failed.",
+        )

@@ -8,6 +8,7 @@ from app.models.payment import Payment
 from app.models.chat_session import ChatSession
 from app.models.chat_message import ChatMessage
 from app.models.document import Document, Template, DocumentTemplate, LegalThesis, GeneratedDocument, DocumentThesisAssociation
+from app.models.notification import Notification
 
 def init_db() -> None:
     """Initialize the database, creating all tables."""
