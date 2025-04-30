@@ -51,13 +51,27 @@ async def login_access_token(
         logger.debug("Password verified, generating access token")
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         token = create_access_token(
-            user.id, expires_delta=access_token_expires
+            str(user.id), expires_delta=access_token_expires
         )
         logger.debug("Access token generated successfully")
         
         return {
             "access_token": token,
             "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "nome_completo": user.nome_completo,
+                "oab_number": user.oab_number,
+                "phone": user.phone,
+                "is_active": user.is_active,
+                "is_admin": user.is_admin,
+                "plan": user.plan,
+                "token_credits": user.token_credits,
+                "avatar_url": user.avatar_url
+            }
         }
     except Exception as e:
         logger.error(f"Error during login: {str(e)}")
@@ -87,13 +101,15 @@ async def register_user(
     # Create new user
     db_user = UserModel(
         email=user_in.email,
-        nome_completo=user_in.nome_completo,
+        first_name=user_in.first_name,
+        last_name=user_in.last_name,
         hashed_password=get_password_hash(user_in.password),
-        numero_oab=user_in.numero_oab,
-        estado_oab=user_in.estado_oab,
-        verificado=False,
-        creditos_disponiveis=10,  # Initial free credits
-        plano="gratuito",
+        oab_number=user_in.oab_number,
+        phone=user_in.phone,
+        is_active=True,
+        is_admin=False,
+        token_credits=10,  # Initial free credits
+        plan="basic",
     )
     db.add(db_user)
     db.commit()
@@ -153,17 +169,20 @@ async def login_with_google(
             alphabet = string.ascii_letters + string.digits
             password = ''.join(secrets.choice(alphabet) for _ in range(16))
             
-            # Obter nome completo do Google ou usar email como fallback
-            nome_completo = google_data.get("name", email.split("@")[0])
+            # Obter nome do Google
+            given_name = google_data.get("given_name", "")
+            family_name = google_data.get("family_name", "")
             
             # Criar novo usuário
             user = UserModel(
                 email=email,
-                nome_completo=nome_completo,
+                first_name=given_name,
+                last_name=family_name,
                 hashed_password=get_password_hash(password),
-                verificado=True,  # Já é verificado pelo Google
-                creditos_disponiveis=10,  # Créditos iniciais
-                plano="gratuito",
+                is_active=True,
+                is_admin=False,
+                token_credits=10,  # Créditos iniciais
+                plan="basic",
             )
             db.add(user)
             db.commit()
@@ -173,9 +192,23 @@ async def login_with_google(
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         return {
             "access_token": create_access_token(
-                user.id, expires_delta=access_token_expires
+                str(user.id), expires_delta=access_token_expires
             ),
             "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "nome_completo": user.nome_completo,  # Usando a property para compatibilidade
+                "oab_number": user.oab_number,
+                "phone": user.phone,
+                "is_active": user.is_active,
+                "is_admin": user.is_admin,
+                "plan": user.plan,
+                "token_credits": user.token_credits,
+                "avatar_url": user.avatar_url
+            }
         }
     except requests.RequestException as e:
         raise HTTPException(

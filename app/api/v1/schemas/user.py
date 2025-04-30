@@ -6,7 +6,8 @@ from pydantic import BaseModel, EmailStr, Field, validator
 # Shared properties
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
-    nome_completo: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     verificado: Optional[bool] = None
     numero_oab: Optional[str] = None
     estado_oab: Optional[str] = None
@@ -15,7 +16,8 @@ class UserBase(BaseModel):
 # Properties to receive via API on creation
 class UserCreate(UserBase):
     email: EmailStr
-    nome_completo: str
+    first_name: str
+    last_name: str
     password: str
     numero_oab: Optional[str] = None
     estado_oab: Optional[str] = None
@@ -46,7 +48,21 @@ class User(UserBase):
     created_at: datetime
     updated_at: datetime
     is_active: bool = True
-    role: str = "user"
+    is_admin: bool = False
+    plan: str = "basic"
+    token_credits: int = 0
+    avatar_url: Optional[str] = None
+    is_verified: bool = False
+
+    @property
+    def nome_completo(self) -> str:
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        elif self.first_name:
+            return self.first_name
+        elif self.last_name:
+            return self.last_name
+        return ""
 
     class Config:
         from_attributes = True
@@ -70,13 +86,16 @@ class UserInDB(UserInDBBase):
 # Admin-only user update schema
 class AdminUserUpdate(BaseModel):
     email: Optional[EmailStr] = None
-    nome_completo: Optional[str] = None
-    plano: Optional[str] = None
-    verificado: Optional[bool] = None
-    role: Optional[str] = None
-    
-# Credit update schema for admin
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    plan: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+    token_credits: Optional[int] = None
+
+
+# Schema for credit updates
 class CreditUpdate(BaseModel):
-    userId: str
-    amount: int
-    reason: str
+    token_credits: int
+    operation: str = Field(..., description="Operation type: 'add' or 'subtract'")
+    reason: Optional[str] = None

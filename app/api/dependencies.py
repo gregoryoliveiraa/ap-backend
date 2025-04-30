@@ -75,7 +75,7 @@ def get_current_user(
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[ALGORITHM]
         )
-        user_id: str = payload.get("sub")
+        user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -104,7 +104,7 @@ def get_current_active_user(
     """
     Dependency to get current active user
     """
-    if not current_user.verificado:
+    if not current_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
@@ -119,18 +119,7 @@ def get_admin_user(
     Dependency to get current admin user
     """
     try:
-        # Check if the user has admin role or admin plan
-        is_admin = False
-        
-        # Check if role attribute exists
-        if hasattr(current_user, "role"):
-            is_admin = current_user.role == "admin"
-        
-        # If not admin by role, check if admin by plan
-        if not is_admin:
-            is_admin = current_user.plano == "admin"
-            
-        if not is_admin:
+        if not current_user.is_admin:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized. Admin access required.",

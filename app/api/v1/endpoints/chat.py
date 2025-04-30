@@ -239,10 +239,10 @@ async def send_message(
         db_session.updated_at = datetime.utcnow()
         
         # Update user's credits
-        if ai_response.tokens_used > 0 and current_user.creditos_disponiveis is not None:
+        if ai_response.tokens_used > 0 and current_user.token_credits is not None:
             # Calcular créditos a serem consumidos usando a função comum
             creditos_a_consumir = calcular_creditos_consumidos(ai_response.tokens_used)
-            current_user.creditos_disponiveis = max(0, current_user.creditos_disponiveis - creditos_a_consumir)
+            current_user.token_credits = max(0, current_user.token_credits - creditos_a_consumir)
             print(f"Tokens usados: {ai_response.tokens_used}, Créditos consumidos: {creditos_a_consumir}")
             
             # Update usage statistics
@@ -346,10 +346,10 @@ async def stream_chat(
             db_session.updated_at = datetime.utcnow()
             
             # Update user's credits
-            if ai_response.tokens_used > 0 and current_user.creditos_disponiveis is not None:
+            if ai_response.tokens_used > 0 and current_user.token_credits is not None:
                 # Calcular créditos a serem consumidos usando a função comum
                 creditos_a_consumir = calcular_creditos_consumidos(ai_response.tokens_used)
-                current_user.creditos_disponiveis = max(0, current_user.creditos_disponiveis - creditos_a_consumir)
+                current_user.token_credits = max(0, current_user.token_credits - creditos_a_consumir)
                 print(f"Tokens usados: {ai_response.tokens_used}, Créditos consumidos: {creditos_a_consumir}")
                 
                 # Update usage statistics

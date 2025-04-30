@@ -1,13 +1,18 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.api.v1.router import api_router
 from sqlalchemy.orm import Session
 from app.api.dependencies import get_db
 from app.models.user import User
 from app.core.security import create_access_token, verify_password
-from datetime import timedelta
+from datetime import timedelta, datetime
 from app.db.base import init_db
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # API version
 API_VERSION = "2.1.8"
@@ -20,14 +25,21 @@ app = FastAPI(
     version=API_VERSION,
 )
 
-# Set up CORS middleware
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://app.advogadaparceira.com.br"],  # Allow both local and production frontend
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods (GET, POST, etc)
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "X-CSRF-Token",
+    ],
+    expose_headers=["Content-Length", "Content-Range"],
     max_age=3600,
 )
 
@@ -37,6 +49,29 @@ init_db()
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all requests"""
+    start_time = datetime.now()
+    response = await call_next(request)
+    duration = datetime.now() - start_time
+    
+    # Log request details
+    logger.info(
+        f"Request: {request.method} {request.url.path} "
+        f"Status: {response.status_code} "
+        f"Duration: {duration.total_seconds():.3f}s "
+        f"Origin: {request.headers.get('origin', 'Unknown')}"
+    )
+    
+    # Log CORS issues
+    if response.status_code == 403 and request.headers.get("origin"):
+        logger.warning(
+            f"Possible CORS issue - Origin: {request.headers.get('origin')} "
+            f"Method: {request.method}"
+        )
+    
+    return response
 
 @app.get("/")
 async def root():
@@ -105,8 +140,6 @@ async def test_login_sidarta(db: Session = Depends(get_db)):
             return {"status": "error", "message": "User not found"}
         
         # Print hash details for debugging
-        import logging
-        logger = logging.getLogger(__name__)
         logger.info(f"User ID: {user.id}")
         logger.info(f"User email: {user.email}")
         logger.info(f"Hashed password: {user.hashed_password}")
