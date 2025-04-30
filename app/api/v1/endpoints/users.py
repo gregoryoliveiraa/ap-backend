@@ -18,7 +18,25 @@ async def read_user_me(
     """
     Get current user
     """
-    return current_user
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
+        "oab_number": current_user.oab_number,
+        "estado_oab": current_user.estado_oab,
+        "phone": current_user.phone,
+        "is_active": current_user.is_active,
+        "is_admin": current_user.is_admin,
+        "plan": current_user.plan,
+        "plano": current_user.plan,  # Add plano field
+        "token_credits": current_user.token_credits,
+        "creditos_disponiveis": current_user.token_credits,  # Add creditos_disponiveis field
+        "avatar_url": current_user.avatar_url,
+        "created_at": current_user.created_at,
+        "updated_at": current_user.updated_at,
+        "is_verified": current_user.is_verified
+    }
 
 
 @router.put("/me", response_model=User)

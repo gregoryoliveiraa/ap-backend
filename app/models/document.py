@@ -1,8 +1,10 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, ARRAY, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, ARRAY, JSON, Table
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 from uuid import uuid4
 from app.db.base_class import Base
+from datetime import datetime
+from typing import List, Optional
 
 
 class Document(Base):
@@ -14,11 +16,46 @@ class Document(Base):
     content = Column(Text, nullable=True)
     document_type = Column(String, nullable=False)
     tokens_used = Column(Integer, default=0)
+    folder_id = Column(String, ForeignKey("document_folders.id"), nullable=True)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
     # Relationships
     user = relationship("User", back_populates="documents")
+    folder = relationship("DocumentFolder", back_populates="documents")
+
+
+class DocumentFolder(Base):
+    __tablename__ = "document_folders"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    parent_id: Mapped[Optional[str]] = mapped_column(ForeignKey("document_folders.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", back_populates="document_folders")
+    documents: Mapped[List["Document"]] = relationship(
+        "Document",
+        back_populates="folder",
+        cascade="all, delete-orphan"
+    )
+    
+    # Fix the parent-child relationship
+    parent: Mapped[Optional["DocumentFolder"]] = relationship(
+        "DocumentFolder",
+        back_populates="children",
+        remote_side=[id]
+    )
+    children: Mapped[List["DocumentFolder"]] = relationship(
+        "DocumentFolder",
+        back_populates="parent",
+        remote_side=[parent_id],
+        cascade="all, delete-orphan",
+        single_parent=True
+    )
 
 
 class Template(Base):

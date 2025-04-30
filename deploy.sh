@@ -10,7 +10,7 @@ echo "=============================================="
 # Configurações
 APP_DIR=$(pwd)
 LOG_FILE="$APP_DIR/api.log"
-PORT=${API_PORT:-8000}
+PORT=${API_PORT:-8080}
 HOST=${API_HOST:-0.0.0.0}
 
 # Verificar ambiente
@@ -51,6 +51,74 @@ alembic upgrade heads || echo "AVISO: Erro nas migrações. Verifique se o esque
 # Parar instâncias anteriores
 echo "Parando instâncias anteriores..."
 pkill -f "uvicorn app.main:app" || echo "Nenhuma instância anterior encontrada."
+
+# Configurar Nginx
+echo "Configurando Nginx..."
+sudo tee /etc/nginx/sites-available/ap-backend.conf > /dev/null << 'EOF'
+server {
+    listen 80;
+    server_name api.advogadaparceira.com.br;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name api.advogadaparceira.com.br;
+    
+    ssl_certificate /etc/letsencrypt/live/api.advogadaparceira.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.advogadaparceira.com.br/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Increase timeout for long-running API requests
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+
+        # CORS headers
+        add_header 'Access-Control-Allow-Origin' 'https://app.advogadaparceira.com.br' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+        add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
+
+        # Handle preflight requests
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'https://app.advogadaparceira.com.br' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset=utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+    }
+    
+    # Logs
+    access_log /var/log/nginx/ap-backend-access.log;
+    error_log /var/log/nginx/ap-backend-error.log;
+}
+EOF
+
+# Enable the site if not already enabled
+if [ ! -f "/etc/nginx/sites-enabled/ap-backend.conf" ]; then
+    echo "Habilitando site no Nginx..."
+    sudo ln -s /etc/nginx/sites-available/ap-backend.conf /etc/nginx/sites-enabled/
+fi
+
+# Test nginx configuration
+echo "Testando configuração do Nginx..."
+sudo nginx -t
+
+# Reload nginx
+echo "Recarregando Nginx..."
+sudo systemctl reload nginx
 
 # Iniciar o servidor
 echo "Iniciando o servidor API..."

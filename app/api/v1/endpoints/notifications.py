@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_, and_
 from uuid import UUID
-import logging # Importar logging
+import logging
+import json
 
 from app.api.dependencies import get_db, get_admin_user, get_current_user
 from app.models.user import User as UserModel
@@ -13,9 +14,7 @@ from app.schemas.notification import NotificationRead
 
 router = APIRouter()
 
-logger = logging.getLogger(__name__) # Configurar logger
-
-# --- Rota para usuários buscarem suas notificações ---
+logger = logging.getLogger(__name__)
 
 @router.get("", response_model=List[NotificationRead])
 async def get_user_notifications(
@@ -27,7 +26,7 @@ async def get_user_notifications(
     Inclui o status 'read' para cada notificação.
     """
     logger.info(f"Fetching notifications for user ID: {current_user.id}")
-    now = datetime.utcnow() # Usar UTC se as datas no DB são UTC
+    now = datetime.utcnow()
 
     try:
         # Buscar entradas UserNotification para o usuário atual
@@ -36,24 +35,24 @@ async def get_user_notifications(
         ).all()
         logger.info(f"Found {len(user_notif_entries)} UserNotification entries for user {current_user.id}")
         
+        if not user_notif_entries:
+            logger.info(f"No notification entries found for user {current_user.id}, returning empty list.")
+            return []
+            
         user_notif_map = {un.notification_id: un for un in user_notif_entries}
         notification_ids = list(user_notif_map.keys())
         
         if not notification_ids:
             logger.info(f"No notification IDs found for user {current_user.id}, returning empty list.")
-            return [] # Retorna lista vazia se não há notificações para este usuário
+            return []
 
         logger.info(f"Fetching Notification details for IDs: {notification_ids}")
-        # Buscar os detalhes das notificações correspondentes que:
-        # 1. Não expiraram
-        # 2. Não estão agendadas OU a hora agendada já passou
         notifications = db.query(NotificationModel).filter(
             NotificationModel.id.in_(notification_ids),
             or_(
                 NotificationModel.expiry_date == None, 
                 NotificationModel.expiry_date > now
             ),
-            # Adicionar filtro de agendamento
             or_(
                 NotificationModel.scheduled_at == None,
                 NotificationModel.scheduled_at <= now
@@ -61,148 +60,95 @@ async def get_user_notifications(
         ).order_by(desc(NotificationModel.created_at)).all()
         logger.info(f"Found {len(notifications)} active and scheduled Notification details.")
         
-        # Adicionar o status 'read' e preparar a resposta com o schema correto
+        if not notifications:
+            logger.info(f"No active notifications found for user {current_user.id}, returning empty list.")
+            return []
+            
         notifications_with_read_status = []
         for notification in notifications:
-            user_entry = user_notif_map.get(notification.id)
-            read_status = user_entry.read if user_entry else False
-            setattr(notification, 'read', read_status) # Adiciona dinamicamente para validação do schema
-            logger.debug(f"  Notification ID: {notification.id}, Title: {notification.title}, Read: {read_status}")
-            notifications_with_read_status.append(notification)
+            try:
+                user_entry = user_notif_map.get(notification.id)
+                read_status = user_entry.is_read if user_entry else False  # Usar is_read em vez de read
+                
+                # Certificar que target_users seja sempre uma lista de strings válida
+                target_users_processed = []
+                
+                # Se target_users existir no objeto notification, processá-lo
+                if hasattr(notification, 'target_users') and notification.target_users is not None:
+                    # Se for string (JSON serializado), tentar deserializar
+                    if isinstance(notification.target_users, str):
+                        try:
+                            target_users_processed = json.loads(notification.target_users)
+                            # Garantir que agora é uma lista
+                            if not isinstance(target_users_processed, list):
+                                target_users_processed = []
+                        except (json.JSONDecodeError, TypeError):
+                            logger.warning(f"Failed to parse target_users as JSON for notification {notification.id}")
+                            target_users_processed = []
+                    # Se já for um dict/list (depende do driver SQLAlchemy), usar diretamente
+                    elif isinstance(notification.target_users, (list, dict)):
+                        target_users_processed = notification.target_users
+                        if isinstance(target_users_processed, dict):
+                            # Converter dict para lista se for o caso
+                            target_users_processed = list(target_users_processed.values())
+                
+                # Garantir que todos os itens sejam strings
+                target_users_str = []
+                for item in target_users_processed:
+                    if item is not None:
+                        target_users_str.append(str(item))
+                
+                # Atualizar o objeto notification com a lista processada
+                notification.target_users = target_users_str
+                
+                # Adicionar o status de leitura
+                setattr(notification, 'read', read_status)  # Mantenha o nome 'read' para a resposta API
+                logger.debug(f"Notification ID: {notification.id}, Title: {notification.title}, Read: {read_status}, target_users: {notification.target_users}")
+                
+                notifications_with_read_status.append(notification)
+            except Exception as e:
+                logger.error(f"Error processing notification {notification.id}: {str(e)}", exc_info=True)
+                continue
+        
+        # Retornar lista vazia se nenhuma notificação foi processada com sucesso
+        if not notifications_with_read_status:
+            logger.warning("No notifications could be processed successfully")
+            return []
             
         return notifications_with_read_status
     except Exception as e:
         logger.error(f"Error fetching user notifications for user {current_user.id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to fetch notifications")
+        return []  # Retorna uma lista vazia em vez de um erro 500
 
-# --- Rota para marcar como lida ---
-
-@router.post("/{notification_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/{notification_id}/read", status_code=status.HTTP_200_OK)
 async def mark_notification_read(
-    notification_id: UUID, # Agora UUID está definido
+    notification_id: UUID,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
-) -> None:
+) -> Dict[str, Any]:
     """
-    Mark a specific notification as read for the current user.
+    Mark a notification as read for the current user.
     """
-    user_notification = db.query(UserNotification).filter(
-        UserNotification.user_id == current_user.id,
-        UserNotification.notification_id == notification_id
-    ).first()
-    
-    if not user_notification:
-        # Não levantar erro se a notificação/entrada não existir, apenas retornar
-        # raise HTTPException(
-        #     status_code=status.HTTP_404_NOT_FOUND,
-        #     detail="User notification entry not found"
-        # )
-        return None # Retorna 204 mesmo se não encontrado
-    
-    if not user_notification.read:
-        user_notification.read = True
-        db.add(user_notification)
+    try:
+        user_notification = db.query(UserNotification).filter(
+            UserNotification.notification_id == notification_id,
+            UserNotification.user_id == current_user.id
+        ).first()
+        
+        if not user_notification:
+            logger.warning(f"UserNotification entry not found for notification_id={notification_id}, user_id={current_user.id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Notification not found for this user"
+            )
+        
+        # Atualizar o status de leitura
+        user_notification.is_read = True  # Usar is_read em vez de read
         db.commit()
-    
-    return None # Retorna 204 No Content
-
-# --- Fim das rotas do usuário ---
-
-# --- Rotas comentadas pois dependem de UserNotification ou conflitam com admin.py ---
-
-# @router.get("/admin", response_model=List[Notification])
-# async def get_all_notifications(
-#     db: Session = Depends(get_db),
-#     admin: UserModel = Depends(get_admin_user),
-# ) -> Any:
-#     """
-#     Get all notifications (admin only)
-#     """
-#     notifications = db.query(NotificationModel).order_by(desc(NotificationModel.created_at)).all()
-#     return notifications
-
-
-# @router.post("", response_model=Notification)
-# async def create_notification(
-#     notification_in: NotificationCreate,
-#     db: Session = Depends(get_db),
-#     admin: UserModel = Depends(get_admin_user),
-# ) -> Any:
-#     """
-#     Create a new notification (admin only)
-#     """
-#     # Create the notification
-#     notification = NotificationModel(
-#         title=notification_in.title,
-#         message=notification_in.message,
-#         type=notification_in.type,
-#         target_users=notification_in.target_users,
-#         target_role=notification_in.target_role,
-#         target_all=notification_in.target_all,
-#         expiry_date=notification_in.expiry_date,
-#         action_link=notification_in.action_link,
-#         created_by=admin.id
-#     )
-    
-#     db.add(notification)
-#     db.commit()
-#     db.refresh(notification)
-    
-#     # Determine target users
-#     target_users = []
-    
-#     if notification_in.target_all:
-#         # Target all users
-#         users = db.query(UserModel).filter(UserModel.is_active == True).all()
-#         target_users = [user.id for user in users]
-#     elif notification_in.target_role:
-#         # Target users with a specific role
-#         users = db.query(UserModel).filter(
-#             UserModel.is_active == True,
-#             UserModel.role == notification_in.target_role
-#         ).all()
-#         target_users = [user.id for user in users]
-#     elif notification_in.target_users:
-#         # Target specific users
-#         target_users = notification_in.target_users
-    
-#     # Create user notification entries
-#     for user_id in target_users:
-#         user_notification = UserNotification(
-#             user_id=user_id,
-#             notification_id=notification.id
-#         )
-#         db.add(user_notification)
-    
-#     db.commit()
-    
-#     return notification
-
-
-# @router.delete("/{notification_id}", response_model=Dict[str, Any])
-# async def delete_notification(
-#     notification_id: str,
-#     db: Session = Depends(get_db),
-#     admin: UserModel = Depends(get_admin_user),
-# ) -> Any:
-#     """
-#     Delete a notification (admin only)
-#     """
-#     notification = db.query(NotificationModel).filter(NotificationModel.id == notification_id).first()
-    
-#     if not notification:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND,
-#             detail="Notification not found"
-#         )
-    
-#     # Delete user notification records
-#     db.query(UserNotification).filter(UserNotification.notification_id == notification_id).delete()
-    
-#     # Delete the notification
-#     db.delete(notification)
-#     db.commit()
-    
-#     return {"message": "Notification deleted successfully"}
-
-# --- Fim das rotas comentadas --- 
+        
+        return {"success": True, "message": "Notification marked as read"}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error marking notification as read: {str(e)}", exc_info=True)
+        return {"success": False, "message": "Failed to mark notification as read"} 

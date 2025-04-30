@@ -1,46 +1,63 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, Dict, Any, List, Union
-from pydantic import AnyHttpUrl, validator
+from pydantic import AnyHttpUrl, field_validator
 import secrets
 from pathlib import Path
 import json
+from datetime import datetime, timedelta
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        extra='allow',
+        env_file='.env',
+        env_file_encoding='utf-8',
+        case_sensitive=True
+    )
+    
     PROJECT_NAME: str = "API Advogada Parceira"
-    API_TITLE: str = "API Advogada Parceira"
+    API_TITLE: str = "Advogada Parceira API"
     API_V1_STR: str = "/api/v1"
     VERSION: str = "2.1.8"
-    SECRET_KEY: str = "your-secret-key-123"  # Change in production
+    SECRET_KEY: str = secrets.token_urlsafe(32)
     ALGORITHM: str = "HS256"  # Algorithm for JWT token generation
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # CORS Configuration
     BACKEND_CORS_ORIGINS: List[str] = [
-        "https://app.advogadaparceira.com.br",
-        "https://www.app.advogadaparceira.com.br",
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8000"
+        "http://localhost:3000",      # Frontend development
+        "http://127.0.0.1:3000",      # Frontend development alternative
+        "http://localhost:8000",      # Backend development
+        "http://127.0.0.1:8000",      # Backend development alternative
+        "https://app.advogadaparceira.com.br",     # Production frontend
+        "https://www.app.advogadaparceira.com.br", # Production frontend with www
+        "https://api.advogadaparceira.com.br",     # Production backend
     ]
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
+    @field_validator("BACKEND_CORS_ORIGINS")
+    @classmethod
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         if isinstance(v, str):
-            if v.startswith("["):
-                parsed = json.loads(v)
-                return list(dict.fromkeys(parsed))  # Remove duplicates
-            # Split by comma, strip whitespace, and remove duplicates
-            origins = [i.strip() for i in v.split(",")]
-            return list(dict.fromkeys(origins))  # Remove duplicates while preserving order
-        elif isinstance(v, list):
-            # Remove duplicates while preserving order
-            return list(dict.fromkeys(v))
+            if not v.startswith("["):
+                return [i.strip() for i in v.split(",")]
+            return eval(v)
         return v
 
     # Database Configuration
-    DATABASE_URL: str = "sqlite:///./app.db"
+    DATABASE_URL: str
+    POSTGRES_SERVER: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    SQLALCHEMY_DATABASE_URI: Optional[str] = None
+
+    @field_validator("SQLALCHEMY_DATABASE_URI")
+    @classmethod
+    def assemble_db_connection(cls, v: Optional[str], info: Dict[str, Any]) -> str:
+        if isinstance(v, str):
+            return v
+        values = info.data
+        return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_SERVER')}/{values.get('POSTGRES_DB')}"
     
     # Redis Configuration
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -64,10 +81,23 @@ class Settings(BaseSettings):
     
     # Testing mode - quando True, permite acesso a endpoints sem autenticação
     TEST_MODE: bool = True
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+
+    # User Management
+    FIRST_SUPERUSER: str = "admin@example.com"
+    FIRST_SUPERUSER_PASSWORD: str = "changeme"
+    ADMIN_TOKEN: str = "12345"
+
+    # SMTP Configuration
+    SMTP_TLS: bool = True
+    SMTP_PORT: Optional[int] = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: Optional[str] = None
+    EMAILS_FROM_NAME: Optional[str] = None
+
+    # Sentry Configuration
+    SENTRY_DSN: Optional[str] = None
 
 
 settings = Settings()

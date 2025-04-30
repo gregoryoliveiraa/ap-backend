@@ -17,4 +17,4 @@ class Usage(Base):
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
     # Relationships
-    user = relationship("User", back_populates="usage") 
+    user = relationship("User", back_populates="usages") 
