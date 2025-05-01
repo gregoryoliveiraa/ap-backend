@@ -43,6 +43,7 @@ yarn-error.log*
 # Database
 *.db
 *.sqlite3
+*.db.backup
 
 # Uploads and media
 uploads/
