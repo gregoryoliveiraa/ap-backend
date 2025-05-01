@@ -52,9 +52,7 @@ class DocumentFolder(Base):
     children: Mapped[List["DocumentFolder"]] = relationship(
         "DocumentFolder",
         back_populates="parent",
-        remote_side=[parent_id],
-        cascade="all, delete-orphan",
-        single_parent=True
+        remote_side=[parent_id]
     )
 
 
