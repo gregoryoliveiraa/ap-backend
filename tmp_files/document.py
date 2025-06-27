@@ -13,6 +13,7 @@ class Document(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
+    content = Column(Text, nullable=True)
     document_type = Column(String, nullable=False)
     tokens_used = Column(Integer, default=0)
     folder_id = Column(String, ForeignKey("document_folders.id"), nullable=True)

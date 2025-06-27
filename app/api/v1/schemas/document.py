@@ -6,7 +6,6 @@ from datetime import datetime
 class DocumentBase(BaseModel):
     title: str
     document_type: str
-    content: Optional[str] = None
     
 
 class DocumentCreate(DocumentBase):
@@ -16,7 +15,6 @@ class DocumentCreate(DocumentBase):
 class DocumentUpdate(BaseModel):
     title: Optional[str] = None
     document_type: Optional[str] = None
-    content: Optional[str] = None
 
 
 class DocumentInDB(DocumentBase):

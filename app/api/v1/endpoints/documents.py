@@ -55,50 +55,27 @@ async def get_documents(
     Retorna todos os documentos do usuário
     """
     try:
-        # Verifica se o usuário existe e está ativo
-        if not current_user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Usuário inativo"
-            )
-
-        # Busca os documentos do usuário
         documents = db.query(Document).filter(Document.user_id == current_user.id).all()
         
-        # Prepara a resposta
-        documents_data = []
+        document_list = []
         for doc in documents:
-            try:
-                doc_data = {
-                    "id": doc.id,
-                    "title": doc.title,
-                    "document_type": doc.document_type,
-                    "content": doc.content[:100] + "..." if doc.content and len(doc.content) > 100 else doc.content,
-                    "tokens_used": doc.tokens_used or 0,
-                    "folder_path": doc.folder_id,  # Usar folder_id como folder_path
-                    "created_at": doc.created_at,
-                    "updated_at": doc.updated_at
-                }
-                documents_data.append(doc_data)
-            except Exception as e:
-                # Log do erro específico do documento, mas continua processando os outros
-                print(f"Erro ao processar documento {doc.id}: {str(e)}")
-                continue
+            document_list.append({
+                "id": doc.id,
+                "title": doc.title,
+                "document_type": doc.document_type,
+                "folder_id": doc.folder_id,
+                "created_at": doc.created_at,
+                "updated_at": doc.updated_at
+            })
         
         return {
             "status": "success",
-            "total": len(documents_data),
-            "data": documents_data
+            "data": document_list
         }
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        # Log do erro geral
-        print(f"Erro ao buscar documentos: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao buscar documentos. Por favor, tente novamente mais tarde."
+            detail=f"Erro ao obter documentos: {str(e)}"
         )
 
 @router.get("/templates/categories")
@@ -262,9 +239,8 @@ async def get_document(
         "data": {
             "id": document.id,
             "title": document.title,
-            "content": document.content,
             "document_type": document.document_type,
-            "folder_path": document.folder_id,
+            "folder_id": document.folder_id,
             "created_at": document.created_at,
             "updated_at": document.updated_at
         }
@@ -297,9 +273,6 @@ async def update_document(
         if "title" in document_data:
             document.title = document_data["title"]
         
-        if "content" in document_data:
-            document.content = document_data["content"]
-        
         if "document_type" in document_data:
             document.document_type = document_data["document_type"]
         
@@ -316,7 +289,6 @@ async def update_document(
             "data": {
                 "id": document.id,
                 "title": document.title,
-                "content": document.content,
                 "document_type": document.document_type,
                 "created_at": document.created_at,
                 "updated_at": document.updated_at
@@ -390,7 +362,6 @@ async def generate_document(
         new_document = Document(
             user_id=current_user.id,
             title=document_title,
-            content=document_text,
             document_type=template.category,
             tokens_used=len(document_text) // 4  # Estimativa simples
         )
@@ -923,7 +894,7 @@ async def move_document(
             "data": {
                 "id": document.id,
                 "title": document.title,
-                "folder_path": document.folder_id,
+                "folder_id": document.folder_id,
                 "created_at": document.created_at,
                 "updated_at": document.updated_at
             }
