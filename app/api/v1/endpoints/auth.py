@@ -117,6 +117,7 @@ async def register_user(
         first_name=user_in.first_name,
         last_name=user_in.last_name,
         hashed_password=get_password_hash(user_in.password),
+                cpf_cnpj=user_in.cpf_cnpj,
         oab_number=user_in.oab_number,
         phone=user_in.phone,
         is_active=True,

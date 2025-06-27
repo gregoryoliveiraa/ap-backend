@@ -21,6 +21,7 @@ class User(Base):
     oab_number = Column(String, unique=True, nullable=True)
     estado_oab = Column(String)
     phone = Column(String)
+    cpf_cnpj = Column(String, unique=True, nullable=False)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     plan = Column(String, default='basic')

@@ -11,6 +11,7 @@ class UserBase(BaseModel):
     verificado: Optional[bool] = None
     numero_oab: Optional[str] = None
     estado_oab: Optional[str] = None
+    cpf_cnpj: Optional[str] = None
 
 
 # Properties to receive via API on creation
@@ -19,6 +20,7 @@ class UserCreate(UserBase):
     first_name: str
     last_name: str
     password: str
+    cpf_cnpj: str
     numero_oab: Optional[str] = None
     estado_oab: Optional[str] = None
     
@@ -26,6 +28,19 @@ class UserCreate(UserBase):
     def numero_oab_validation(cls, v, values):
         if v and not values.get('estado_oab'):
             raise ValueError('estado_oab is required when numero_oab is provided')
+        return v
+    
+    @validator('cpf_cnpj')
+    def cpf_cnpj_validation(cls, v):
+        if not v:
+            raise ValueError('CPF/CNPJ é obrigatório')
+        
+        # Remove caracteres não numéricos
+        clean_doc = ''.join(filter(str.isdigit, v))
+        
+        if len(clean_doc) not in [11, 14]:
+            raise ValueError('CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos')
+        
         return v
 
 
